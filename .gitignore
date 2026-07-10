@@ -1,0 +1,40 @@
+# --- Virtual environment ---
+myenv/
+venv/
+.venv/
+env/
+
+# --- Python cache / build artifacts ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+
+# --- Secrets / environment config ---
+.env
+.env.*
+*.key
+
+# --- IDE / editor ---
+.vscode/
+.idea/
+*.swp
+
+# --- Downloaded raw data (large, reproducible via loaders — don't version-control) ---
+data/raw/cve/*.json
+data/raw/attack/*.json
+data/raw/reports/*
+data/processed/*
+!data/raw/cve/.gitkeep
+!data/raw/attack/.gitkeep
+!data/raw/reports/.gitkeep
+!data/processed/.gitkeep
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log
