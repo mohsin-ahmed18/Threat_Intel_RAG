@@ -4,8 +4,10 @@ Reads from environment variables where relevant so secrets never live in code.
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 # --- Data paths ---
 RAW_CVE_DIR = BASE_DIR / "data" / "raw" / "cve"
@@ -28,9 +30,9 @@ ATTACK_STIX_URL = (
 EMBEDDING_MODEL_NAME = "BAAI/bge-m3"
 EMBEDDING_DIM = 1024  # BGE-M3 dense vector size
 
-# --- Vector store (Qdrant) ---
-QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
-QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
+# --- Vector store (Qdrant Cloud) ---
+QDRANT_URL = os.getenv("QDRANT_URL", "")       # e.g. https://xxxxx.aws.cloud.qdrant.io:6333
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "")
 QDRANT_COLLECTION = "threat_intel"
 
 # --- Chunking ---

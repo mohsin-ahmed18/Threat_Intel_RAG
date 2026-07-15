@@ -2,3 +2,7 @@ requests
 fastapi
 uvicorn[standard]
 stix2
+FlagEmbedding
+torch
+qdrant-client
+python-dotenv
