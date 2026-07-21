@@ -1,6 +1,9 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router
 
@@ -29,4 +32,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Frontend is a static file served from the same origin as the API, so this
+# is mainly a safety net for local development with --reload on a different
+# port, or if you ever split the frontend onto its own host later.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(router)
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+
+@app.get("/")
+def serve_frontend():
+    return FileResponse("app/static/index.html")

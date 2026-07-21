@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Threat Intel RAG — Query Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0D1B2A;
+    --panel: #16283B;
+    --panel-raised: #1C3247;
+    --border: #2A4258;
+    --text: #E8EDF2;
+    --text-muted: #7C93A8;
+    --text-dim: #52697D;
+    --amber: #FF9F1C;
+    --teal: #3FD9C7;
+    --crit: #E5484D;
+    --high: #F2994A;
+    --med: #F2C94C;
+    --low: #6FCF97;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 900px 500px at 20% -10%, rgba(255,159,28,0.06), transparent),
+      radial-gradient(ellipse 700px 400px at 90% 10%, rgba(63,217,199,0.05), transparent);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 32px 20px 60px;
+  }
+
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  /* --- Header --- */
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: var(--teal);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 8px var(--teal);
+  }
+  h1 {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 26px;
+    line-height: 1.35;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .sub {
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0 0 28px;
+    max-width: 56ch;
+  }
+
+  /* --- Query box --- */
+  .console {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+  }
+  .console-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+  .prompt-glyph {
+    font-family: var(--mono);
+    color: var(--amber);
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  #question {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 15px;
+  }
+  #question::placeholder { color: var(--text-dim); }
+
+  #askBtn {
+    background: var(--amber);
+    color: #1a1200;
+    border: none;
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    padding: 9px 18px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+  }
+  #askBtn:hover { filter: brightness(1.08); }
+  #askBtn:active { transform: scale(0.97); }
+  #askBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+  #askBtn:focus-visible, #question:focus-visible, .example:focus-visible {
+    outline: 2px solid var(--teal); outline-offset: 2px;
+  }
+
+  .examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .example {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .example:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* --- Pipeline trace (signature element) --- */
+  .trace {
+    display: flex;
+    align-items: center;
+    margin: 28px 0 8px;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
+  }
+  .trace.active { opacity: 1; max-height: 60px; }
+  .stage {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+    white-space: nowrap;
+  }
+  .stage.lit {
+    color: var(--bg);
+    background: var(--teal);
+    border-color: var(--teal);
+  }
+  .stage.done {
+    color: var(--teal);
+    border-color: var(--teal);
+    background: transparent;
+  }
+  .connector {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    margin: 0 4px;
+    min-width: 12px;
+  }
+
+  /* --- Answer --- */
+  .answer-block {
+    margin-top: 28px;
+    display: none;
+  }
+  .answer-block.show { display: block; }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .answer-text {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: 8px;
+    padding: 20px 22px;
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+  .cite {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--teal);
+    background: rgba(63,217,199,0.1);
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(63,217,199,0.3);
+    white-space: nowrap;
+  }
+
+  /* --- Sources --- */
+  .sources { margin-top: 24px; }
+  .source-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .source-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .source-id {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .source-type {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+    margin-left: 8px;
+  }
+  .score-bar-track {
+    width: 80px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%;
+    background: var(--teal);
+    border-radius: 2px;
+  }
+  .source-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* --- Status / error --- */
+  .status-line {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 14px;
+    display: none;
+  }
+  .status-line.show { display: block; }
+  .status-line.error { color: var(--crit); }
+
+  /* --- Footer / stack chips --- */
+  .stack {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .stack-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-right: 4px;
+  }
+  .chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 21px; }
+    .console-input-row { flex-wrap: wrap; }
+    #askBtn { width: 100%; }
+    .trace { flex-wrap: wrap; gap: 8px; }
+    .connector { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="eyebrow"><span class="dot"></span>THREAT INTEL RAG · LIVE QUERY CONSOLE</div>
+    <h1>Ask the threat intelligence assistant</h1>
+    <p class="sub">Grounded answers over MITRE ATT&CK and NVD CVE data — every claim cited to its source record.</p>
+
+    <div class="console">
+      <div class="console-input-row">
+        <span class="prompt-glyph">&gt;</span>
+        <input id="question" type="text" placeholder="How does process injection work as a defense evasion technique?" autocomplete="off" />
+        <button id="askBtn">RUN QUERY</button>
+      </div>
+    </div>
+
+    <div class="examples">
+      <button class="example" data-q="How does process injection work as a defense evasion technique?">process injection</button>
+      <button class="example" data-q="How do adversaries abuse the Windows Task Scheduler?">task scheduler abuse</button>
+      <button class="example" data-q="What techniques are used for lateral movement via VNC?">VNC lateral movement</button>
+    </div>
+
+    <div class="trace" id="trace">
+      <div class="stage" id="s0">EMBED</div>
+      <div class="connector"></div>
+      <div class="stage" id="s1">RETRIEVE</div>
+      <div class="connector"></div>
+      <div class="stage" id="s2">RERANK</div>
+      <div class="connector"></div>
+      <div class="stage" id="s3">GENERATE</div>
+    </div>
+
+    <div class="status-line" id="status"></div>
+
+    <div class="answer-block" id="answerBlock">
+      <div class="section-label">RESPONSE</div>
+      <div class="answer-text" id="answerText"></div>
+
+      <div class="sources" id="sourcesWrap">
+        <div class="section-label" style="margin-top:22px;">SOURCE RECORDS</div>
+        <div id="sourcesList"></div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <span class="stack-label">BUILT WITH</span>
+      <span class="chip">BGE-M3</span>
+      <span class="chip">Qdrant</span>
+      <span class="chip">BGE-Reranker-v2</span>
+      <span class="chip">FastAPI</span>
+      <span class="chip">GPT-4o</span>
+    </div>
+  </div>
+
+<script>
+const API_URL = window.location.origin + "/query";
+
+const questionInput = document.getElementById('question');
+const askBtn = document.getElementById('askBtn');
+const trace = document.getElementById('trace');
+const status = document.getElementById('status');
+const answerBlock = document.getElementById('answerBlock');
+const answerText = document.getElementById('answerText');
+const sourcesList = document.getElementById('sourcesList');
+
+document.querySelectorAll('.example').forEach(btn => {
+  btn.addEventListener('click', () => {
+    questionInput.value = btn.dataset.q;
+    runQuery();
+  });
+});
+
+askBtn.addEventListener('click', runQuery);
+questionInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') runQuery();
+});
+
+function setStage(index) {
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById('s' + i);
+    el.classList.remove('lit', 'done');
+    if (i < index) el.classList.add('done');
+    if (i === index) el.classList.add('lit');
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Turn "(T1055.011)" or "(CVE-2024-3094)" style citations into styled chips
+function formatAnswer(text) {
+  const escaped = escapeHtml(text);
+  return escaped.replace(/\(((?:T\d{4}(?:\.\d{3})?|CVE-\d{4}-\d+)(?:,\s*(?:T\d{4}(?:\.\d{3})?|CVE-\d{4}-\d+))*)\)/g,
+    (match, ids) => {
+      const chips = ids.split(',').map(id => `<span class="cite">${id.trim()}</span>`).join(' ');
+      return chips;
+    });
+}
+
+async function runQuery() {
+  const question = questionInput.value.trim();
+  if (!question) return;
+
+  askBtn.disabled = true;
+  trace.classList.add('active');
+  status.className = 'status-line show';
+  status.textContent = 'Running pipeline...';
+  answerBlock.classList.remove('show');
+
+  setStage(0);
+
+  // Stage durations approximate real relative cost (embed/retrieve are
+  // network+light-compute, rerank and generate are the heavier steps) and
+  // sum to a floor of ~5.4s so the trace always reads clearly on screen,
+  // even if the real API response comes back faster.
+  const stageDurations = [2000, 5500, 3500, 4000]; // ms per stage: embed, retrieve, rerank, generate
+  const traceAnimation = (async () => {
+    for (let i = 1; i <= 3; i++) {
+      await new Promise(r => setTimeout(r, stageDurations[i - 1]));
+      setStage(i);
+    }
+    await new Promise(r => setTimeout(r, stageDurations[3]));
+  })();
+
+  try {
+    const apiCall = fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question })
+    });
+
+    // Wait for BOTH the real response and the full trace animation, so a
+    // fast API response doesn't cut the visualization short mid-demo.
+    const [res] = await Promise.all([apiCall, traceAnimation]);
+
+    setStage(4); // mark all done
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`API returned ${res.status}: ${errBody}`);
+    }
+
+    const data = await res.json();
+
+    status.classList.remove('show');
+    answerText.innerHTML = formatAnswer(data.answer);
+
+    sourcesList.innerHTML = '';
+    if (data.sources && data.sources.length > 0) {
+      data.sources.forEach(src => {
+        const pct = Math.min(100, Math.round(src.rerank_score * 100));
+        const card = document.createElement('div');
+        card.className = 'source-card';
+        card.innerHTML = `
+          <div class="source-head">
+            <div><span class="source-id">${escapeHtml(src.parent_id)}</span><span class="source-type">${escapeHtml(src.source_type.toUpperCase())}</span></div>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:${pct}%"></div></div>
+          </div>
+          <div class="source-text">${escapeHtml(src.text.slice(0, 220))}${src.text.length > 220 ? '…' : ''}</div>
+        `;
+        sourcesList.appendChild(card);
+      });
+    } else {
+      sourcesList.innerHTML = '<div class="source-text">No sources cleared the relevance threshold for this query.</div>';
+    }
+
+    answerBlock.classList.add('show');
+  } catch (err) {
+    status.className = 'status-line show error';
+    status.textContent = 'Error: ' + err.message + ' — is the API server running?';
+  } finally {
+    askBtn.disabled = false;
+    setTimeout(() => trace.classList.remove('active'), 600);
+  }
+}
+</script>
+</body>
+</html>
