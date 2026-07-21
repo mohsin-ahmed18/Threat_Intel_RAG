@@ -39,6 +39,9 @@ QDRANT_COLLECTION = "threat_intel"
 CHUNK_SIZE_TOKENS = 400
 CHUNK_OVERLAP_TOKENS = 50
 
+# --- Retrieval ---
+RERANK_SCORE_THRESHOLD = 0.05  # chunks scoring below this are treated as noise, not real matches
+
 # --- LLM ---
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "anthropic")  # anthropic | openai | local
-LLM_MODEL = os.getenv("LLM_MODEL", "claude-sonnet-4-6")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai")  # anthropic | openai | local
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o")
