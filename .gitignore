@@ -15,7 +15,7 @@ dist/
 # --- Secrets / environment config ---
 .env
 .env.*
-*.key
+!.env.example
 
 # --- IDE / editor ---
 .vscode/

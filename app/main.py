@@ -10,9 +10,7 @@ from app.api.routes import router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Preload both models once at startup so the FIRST real request isn't the
-    # one paying for BGE-M3 + reranker weight loading (~seconds of dead time
-    # otherwise land on whichever user happens to hit the API first).
+    
     from app.ingestion.embed import _get_model
     from app.retrieval.reranker import _get_reranker
 
@@ -22,7 +20,7 @@ async def lifespan(app: FastAPI):
     _get_reranker()
     print("Models loaded. API ready.")
 
-    yield  # app runs here
+    yield 
 
 
 app = FastAPI(
@@ -32,9 +30,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Frontend is a static file served from the same origin as the API, so this
-# is mainly a safety net for local development with --reload on a different
-# port, or if you ever split the frontend onto its own host later.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
