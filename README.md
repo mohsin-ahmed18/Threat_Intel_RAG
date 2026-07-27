@@ -2,10 +2,6 @@
 
 A RAG system that answers natural-language questions about cybersecurity threats, grounded in real CVE and MITRE ATT&CK data, with every claim cited to its source record.
 
-**[Live demo GIF / screenshot here]**
-
----
-
 ## What it does
 
 Ask questions like:
